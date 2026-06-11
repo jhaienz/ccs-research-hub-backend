@@ -34,6 +34,7 @@ export class AuthService {
       ...dto,
       middleName: dto.middleName,
       suffix: dto.suffix,
+      roleId: Math.min(dto.roleId, 2), // Prevent public admin registration
       password: hashedPassword,
     });
 
