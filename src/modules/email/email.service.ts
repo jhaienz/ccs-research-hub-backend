@@ -19,7 +19,7 @@ export class EmailService {
     await this.resend.emails.send({
       from: this.from,
       to,
-      subject: 'Email Verification Code — NCF Research Nexus',
+      subject: 'Email Verification Code — CCS Research Hub',
       html: `<p>Your email verification code is:</p>
              <h2>${code}</h2>
              <p>This code expires in 15 minutes.</p>
@@ -31,7 +31,7 @@ export class EmailService {
     await this.resend.emails.send({
       from: this.from,
       to,
-      subject: 'Password Reset Code — NCF Research Nexus',
+      subject: 'Password Reset Code — CCS Research Hub',
       html: `<p>Your password reset code is:</p>
              <h2>${code}</h2>
              <p>This code expires in 15 minutes.</p>`,
@@ -46,7 +46,7 @@ export class EmailService {
     await this.resend.emails.send({
       from: this.from,
       to,
-      subject: `PDF Request for "${researchTitle}" — NCF Research Nexus`,
+      subject: `PDF Request for "${researchTitle}" — CCS Research Hub`,
       html: `<p><strong>${requesterName}</strong> has requested access to the PDF of your research paper:</p>
              <p><em>${researchTitle}</em></p>
              <p>Log in to your dashboard to approve or reject this request.</p>`,

@@ -46,8 +46,8 @@ async function bootstrap() {
   app.useGlobalInterceptors(new TransformInterceptor());
 
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('NCF Research Nexus API')
-    .setDescription('Backend API for the NCF Research Nexus v2')
+    .setTitle('CCS Research Hub API')
+    .setDescription('Backend API for the CCS Research Hub v2')
     .setVersion('1.0')
     .addBearerAuth()
     .build();
