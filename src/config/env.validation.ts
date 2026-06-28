@@ -14,6 +14,7 @@ export const envSchema = z.object({
 
   RESEND_API_KEY: z.string().startsWith('re_'),
   EMAIL_FROM: z.string().email(),
+  ADMIN_EMAIL: z.string().email(),
 
   FRONTEND_URL: z.string().url(),
   FRONTEND_URLS: z.string().optional(),

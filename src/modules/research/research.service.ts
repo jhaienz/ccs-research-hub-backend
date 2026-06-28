@@ -5,6 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { eq, count, sql, and } from 'drizzle-orm';
 import { DRIZZLE } from '../../database/drizzle.provider.js';
 import type { DrizzleDB } from '../../database/drizzle.provider.js';
@@ -15,7 +16,9 @@ import { researchCategories } from '../../database/schema/research-categories.js
 import { researchKeywords } from '../../database/schema/research-keywords.js';
 import { analyticsEvents } from '../../database/schema/analytics-events.js';
 import { notifications } from '../../database/schema/notifications.js';
+import { users } from '../../database/schema/users.js';
 import { StorageService } from '../storage/storage.service.js';
+import { EmailService } from '../email/email.service.js';
 import { CreateResearchDto } from './dto/create-research.dto.js';
 import { UpdateResearchDto } from './dto/update-research.dto.js';
 
@@ -26,10 +29,12 @@ export class ResearchService {
   constructor(
     @Inject(DRIZZLE) private db: DrizzleDB,
     private storage: StorageService,
+    private email: EmailService,
+    private config: ConfigService,
   ) {}
 
   async create(uploaderId: string, dto: CreateResearchDto) {
-    return this.db.transaction(async (tx) => {
+    const result = await this.db.transaction(async (tx) => {
       const [research] = await tx
         .insert(researches)
         .values({
@@ -81,6 +86,21 @@ export class ResearchService {
 
       return { id: research.id };
     });
+
+    // Fire-and-forget: email admin about new submission
+    const uploader = await this.db.query.users.findFirst({
+      where: eq(users.id, uploaderId),
+      columns: { firstName: true, lastName: true },
+    });
+    const adminEmail = this.config.get<string>('ADMIN_EMAIL')!;
+    const uploaderName = uploader
+      ? `${uploader.firstName} ${uploader.lastName}`
+      : 'A researcher';
+    this.email
+      .sendNewSubmission(adminEmail, uploaderName, dto.title, result.id)
+      .catch(() => {});
+
+    return result;
   }
 
   async getUploadUrl(
@@ -361,6 +381,16 @@ export class ResearchService {
       message: `Your research "${research.title}" has been approved.`,
     });
 
+    const uploader = await this.db.query.users.findFirst({
+      where: eq(users.id, research.uploaderId),
+      columns: { email: true, firstName: true },
+    });
+    if (uploader) {
+      this.email
+        .sendPaperApproved(uploader.email, uploader.firstName, research.title, research.id)
+        .catch(() => {});
+    }
+
     return research;
   }
 
@@ -382,6 +412,16 @@ export class ResearchService {
       researchId: research.id,
       message: `Your research "${research.title}" has been rejected. Reason: ${reason}`,
     });
+
+    const uploader = await this.db.query.users.findFirst({
+      where: eq(users.id, research.uploaderId),
+      columns: { email: true, firstName: true },
+    });
+    if (uploader) {
+      this.email
+        .sendPaperRejected(uploader.email, uploader.firstName, research.title, reason)
+        .catch(() => {});
+    }
 
     return research;
   }

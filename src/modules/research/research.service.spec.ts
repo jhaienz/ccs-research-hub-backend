@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ResearchService } from './research.service';
+import { EmailService } from '../email/email.service';
 
 const makeUpdateQuery = (returningValue?: unknown) => ({
   set: jest.fn().mockReturnThis(),
@@ -30,6 +31,16 @@ const makeResearch = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
+const mockEmailService = {
+  sendPaperApproved: jest.fn().mockResolvedValue(undefined),
+  sendPaperRejected: jest.fn().mockResolvedValue(undefined),
+  sendNewSubmission: jest.fn().mockResolvedValue(undefined),
+};
+
+const mockConfigService = {
+  get: jest.fn().mockReturnValue('admin@test.com'),
+};
+
 describe('ResearchService', () => {
   const storage = {
     generateUploadUrl: jest.fn(),
@@ -39,10 +50,18 @@ describe('ResearchService', () => {
   };
 
   const createService = (db: unknown) =>
-    new ResearchService(db as never, storage as never);
+    new ResearchService(
+      db as never,
+      storage as never,
+      mockEmailService as unknown as EmailService,
+      mockConfigService as never,
+    );
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockEmailService.sendPaperApproved.mockResolvedValue(undefined);
+    mockEmailService.sendPaperRejected.mockResolvedValue(undefined);
+    mockEmailService.sendNewSubmission.mockResolvedValue(undefined);
   });
 
   describe('findById', () => {
@@ -121,6 +140,7 @@ describe('ResearchService', () => {
                 makeResearch({ uploadComplete: false, fileKey: null }),
               ),
           },
+          users: { findFirst: jest.fn().mockResolvedValue(null) },
         },
       };
 
@@ -141,6 +161,7 @@ describe('ResearchService', () => {
               .fn()
               .mockResolvedValue(makeResearch({ uploadComplete: true })),
           },
+          users: { findFirst: jest.fn().mockResolvedValue(null) },
         },
         update: jest.fn().mockReturnValue(updateQuery),
         insert: jest.fn().mockReturnValue(insertQuery),
@@ -154,6 +175,65 @@ describe('ResearchService', () => {
           userId: 'owner-1',
           researchId: 'research-1',
         }),
+      );
+    });
+
+    it('sends approval email to uploader', async () => {
+      const updateQuery = makeUpdateQuery([
+        makeResearch({ status: 'approved', uploadComplete: true }),
+      ]);
+      const insertQuery = makeInsertQuery();
+      const db = {
+        query: {
+          researches: {
+            findFirst: jest
+              .fn()
+              .mockResolvedValue(makeResearch({ uploadComplete: true })),
+          },
+          users: {
+            findFirst: jest
+              .fn()
+              .mockResolvedValue({ email: 'r@test.com', firstName: 'Rey' }),
+          },
+        },
+        update: jest.fn().mockReturnValue(updateQuery),
+        insert: jest.fn().mockReturnValue(insertQuery),
+      };
+
+      await createService(db).approve('research-1');
+      expect(mockEmailService.sendPaperApproved).toHaveBeenCalledWith(
+        'r@test.com',
+        'Rey',
+        expect.any(String),
+        expect.any(String),
+      );
+    });
+  });
+
+  describe('reject', () => {
+    it('sends rejection email with reason to uploader', async () => {
+      const updateQuery = makeUpdateQuery([
+        makeResearch({ status: 'rejected' }),
+      ]);
+      const insertQuery = makeInsertQuery();
+      const db = {
+        query: {
+          users: {
+            findFirst: jest
+              .fn()
+              .mockResolvedValue({ email: 'r@test.com', firstName: 'Rey' }),
+          },
+        },
+        update: jest.fn().mockReturnValue(updateQuery),
+        insert: jest.fn().mockReturnValue(insertQuery),
+      };
+
+      await createService(db).reject('research-1', 'Insufficient citations');
+      expect(mockEmailService.sendPaperRejected).toHaveBeenCalledWith(
+        'r@test.com',
+        'Rey',
+        expect.any(String),
+        'Insufficient citations',
       );
     });
   });

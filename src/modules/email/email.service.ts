@@ -76,4 +76,40 @@ export class EmailService {
       html: `<p>Your request for the PDF of <em>${researchTitle}</em> has been denied by the author.</p>`,
     });
   }
+
+  async sendPaperApproved(to: string, firstName: string, title: string, researchId: string) {
+    const url = `${this.frontendUrl}/research/${researchId}`;
+    await this.resend.emails.send({
+      from: this.from,
+      to,
+      subject: `Your research has been approved — CCS Research Hub`,
+      html: `<p>Hi ${firstName},</p>
+             <p>Your research paper <strong>"${title}"</strong> has been <strong>approved</strong> and is now publicly visible.</p>
+             <p><a href="${url}">View your paper</a></p>`,
+    });
+  }
+
+  async sendPaperRejected(to: string, firstName: string, title: string, reason: string) {
+    await this.resend.emails.send({
+      from: this.from,
+      to,
+      subject: `Your research submission needs revision — CCS Research Hub`,
+      html: `<p>Hi ${firstName},</p>
+             <p>Your research paper <strong>"${title}"</strong> has been <strong>rejected</strong>.</p>
+             <p><strong>Reason:</strong> ${reason}</p>
+             <p>You may log in to your dashboard to edit and resubmit the paper.</p>`,
+    });
+  }
+
+  async sendNewSubmission(adminEmail: string, uploaderName: string, title: string, researchId: string) {
+    const url = `${this.frontendUrl}/admin/research`;
+    await this.resend.emails.send({
+      from: this.from,
+      to: adminEmail,
+      subject: `New research submission: "${title}" — CCS Research Hub`,
+      html: `<p><strong>${uploaderName}</strong> submitted a new research paper for review:</p>
+             <p><em>${title}</em></p>
+             <p><a href="${url}">Review pending submissions</a></p>`,
+    });
+  }
 }
