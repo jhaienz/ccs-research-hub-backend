@@ -151,8 +151,11 @@ export class ResearchController {
   @Patch(':id/approve')
   @Roles('admin')
   @ApiOperation({ summary: 'Approve pending research (admin)' })
-  approve(@Param('id', ParseUUIDPipe) id: string) {
-    return this.service.approve(id);
+  approve(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser('id') adminId: string,
+  ) {
+    return this.service.approve(id, adminId);
   }
 
   @ApiBearerAuth()
@@ -162,8 +165,9 @@ export class ResearchController {
   reject(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: RejectResearchDto,
+    @CurrentUser('id') adminId: string,
   ) {
-    return this.service.reject(id, dto.reason);
+    return this.service.reject(id, dto.reason, adminId);
   }
 
   @Public()

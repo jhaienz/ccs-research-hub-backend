@@ -19,6 +19,7 @@ import { CollectionModule } from './modules/collection/collection.module.js';
 import { NotificationModule } from './modules/notification/notification.module.js';
 import { AnalyticsModule } from './modules/analytics/analytics.module.js';
 import { PdfRequestModule } from './modules/pdf-request/pdf-request.module.js';
+import { AuditModule } from './modules/audit/audit.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
 import { AppController } from './app.controller.js';
@@ -46,6 +47,7 @@ import { AppController } from './app.controller.js';
     NotificationModule,
     AnalyticsModule,
     PdfRequestModule,
+    AuditModule,
   ],
   controllers: [AppController],
   providers: [

@@ -19,6 +19,7 @@ import { notifications } from '../../database/schema/notifications.js';
 import { users } from '../../database/schema/users.js';
 import { StorageService } from '../storage/storage.service.js';
 import { EmailService } from '../email/email.service.js';
+import { AuditService } from '../audit/audit.service.js';
 import { CreateResearchDto } from './dto/create-research.dto.js';
 import { UpdateResearchDto } from './dto/update-research.dto.js';
 
@@ -31,6 +32,7 @@ export class ResearchService {
     private storage: StorageService,
     private email: EmailService,
     private config: ConfigService,
+    private audit: AuditService,
   ) {}
 
   async create(uploaderId: string, dto: CreateResearchDto) {
@@ -346,7 +348,7 @@ export class ResearchService {
     return updated;
   }
 
-  async remove(researchId: string, userId: string) {
+  async remove(researchId: string, userId: string, adminId?: string) {
     const research = await this.assertOwnership(researchId, userId);
 
     if (research.fileKey) {
@@ -354,10 +356,11 @@ export class ResearchService {
     }
 
     await this.db.delete(researches).where(eq(researches.id, researchId));
+    await this.audit.log(adminId ?? userId, 'delete', researchId);
     return { message: 'Research deleted' };
   }
 
-  async approve(researchId: string) {
+  async approve(researchId: string, adminId: string) {
     const existing = await this.db.query.researches.findFirst({
       where: eq(researches.id, researchId),
     });
@@ -391,10 +394,11 @@ export class ResearchService {
         .catch(() => {});
     }
 
+    await this.audit.log(adminId, 'approve', researchId);
     return research;
   }
 
-  async reject(researchId: string, reason: string) {
+  async reject(researchId: string, reason: string, adminId: string) {
     const [research] = await this.db
       .update(researches)
       .set({
@@ -423,6 +427,7 @@ export class ResearchService {
         .catch(() => {});
     }
 
+    await this.audit.log(adminId, 'reject', researchId, { reason });
     return research;
   }
 

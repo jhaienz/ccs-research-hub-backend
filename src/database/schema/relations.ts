@@ -14,6 +14,7 @@ import { collections } from './collections.js';
 import { notifications } from './notifications.js';
 import { pdfRequests } from './pdf-requests.js';
 import { passwordResets } from './password-resets.js';
+import { auditLogs } from './audit-logs.js';
 
 export const usersRelations = relations(users, ({ one, many }) => ({
   institution: one(institutions, {
@@ -149,5 +150,16 @@ export const passwordResetsRelations = relations(passwordResets, ({ one }) => ({
   user: one(users, {
     fields: [passwordResets.userId],
     references: [users.id],
+  }),
+}));
+
+export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
+  admin: one(users, {
+    fields: [auditLogs.adminId],
+    references: [users.id],
+  }),
+  research: one(researches, {
+    fields: [auditLogs.researchId],
+    references: [researches.id],
   }),
 }));

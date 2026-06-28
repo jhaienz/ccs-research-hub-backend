@@ -15,6 +15,13 @@
       "when": 1782629499073,
       "tag": "0001_deep_ma_gnuci",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782665856048,
+      "tag": "0002_simple_eternity",
+      "breakpoints": true
     }
   ]
 }
