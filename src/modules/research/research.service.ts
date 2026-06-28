@@ -257,6 +257,22 @@ export class ResearchService {
     return updated;
   }
 
+  async resubmit(researchId: string, userId: string) {
+    const research = await this.assertOwnership(researchId, userId);
+
+    if (research.status !== 'rejected') {
+      throw new BadRequestException('Only rejected research can be resubmitted');
+    }
+
+    const [updated] = await this.db
+      .update(researches)
+      .set({ status: 'pending', rejectionReason: null, updatedAt: new Date() })
+      .where(eq(researches.id, researchId))
+      .returning();
+
+    return updated;
+  }
+
   async updatePrivacy(
     researchId: string,
     userId: string,

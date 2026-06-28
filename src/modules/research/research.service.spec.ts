@@ -201,6 +201,55 @@ describe('ResearchService', () => {
     });
   });
 
+  describe('resubmit', () => {
+    it('resets a rejected research back to pending', async () => {
+      const research = makeResearch({ status: 'rejected', rejectionReason: 'Too short' });
+      const updated = { ...research, status: 'pending', rejectionReason: null };
+      const db = {
+        query: {
+          researches: {
+            findFirst: jest.fn().mockResolvedValue(research),
+          },
+        },
+        update: jest.fn().mockReturnValue(makeUpdateQuery([updated])),
+      };
+
+      const result = await createService(db).resubmit('research-1', 'owner-1');
+
+      expect(result.status).toBe('pending');
+      expect(result.rejectionReason).toBeNull();
+    });
+
+    it('throws BadRequestException when research is not rejected', async () => {
+      const research = makeResearch({ status: 'pending' });
+      const db = {
+        query: {
+          researches: { findFirst: jest.fn().mockResolvedValue(research) },
+        },
+        update: jest.fn().mockReturnValue(makeUpdateQuery([research])),
+      };
+
+      await expect(
+        createService(db).resubmit('research-1', 'owner-1'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('throws NotFoundException when user does not own the research', async () => {
+      // assertOwnership queries with AND uploaderId = userId; DB returns null when
+      // uploaderId doesn't match, so the mock must return null to simulate that.
+      const db = {
+        query: {
+          researches: { findFirst: jest.fn().mockResolvedValue(null) },
+        },
+        update: jest.fn().mockReturnValue(makeUpdateQuery([])),
+      };
+
+      await expect(
+        createService(db).resubmit('research-1', 'owner-1'),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
   describe('trackEvent', () => {
     it('does not track analytics for unavailable research', async () => {
       const db = {

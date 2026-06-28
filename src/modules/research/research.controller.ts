@@ -123,6 +123,16 @@ export class ResearchController {
   }
 
   @ApiBearerAuth()
+  @Patch(':id/resubmit')
+  @ApiOperation({ summary: 'Resubmit rejected research for re-review' })
+  resubmit(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.service.resubmit(id, userId);
+  }
+
+  @ApiBearerAuth()
   @Patch(':id/approve')
   @Roles('admin')
   @ApiOperation({ summary: 'Approve pending research (admin)' })
