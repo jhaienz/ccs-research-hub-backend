@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { validate } from './config/index.js';
 import { DatabaseModule } from './database/database.module.js';
 import { StorageModule } from './modules/storage/storage.module.js';
@@ -28,6 +29,7 @@ import { AppController } from './app.controller.js';
       isGlobal: true,
       validate,
     }),
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 20 }]),
     DatabaseModule,
     StorageModule,
     EmailModule,
@@ -47,6 +49,7 @@ import { AppController } from './app.controller.js';
   ],
   controllers: [AppController],
   providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
