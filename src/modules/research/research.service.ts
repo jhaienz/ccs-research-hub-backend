@@ -351,7 +351,7 @@ export class ResearchService {
 
     const [research] = await this.db
       .update(researches)
-      .set({ status: 'approved', updatedAt: new Date() })
+      .set({ status: 'approved', rejectionReason: null, updatedAt: new Date() })
       .where(eq(researches.id, researchId))
       .returning();
 

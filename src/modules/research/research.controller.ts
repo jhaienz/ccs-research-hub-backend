@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -88,6 +89,9 @@ export class ResearchController {
     @Query() query: PaginationDto,
     @Query('status') status?: string,
   ) {
+    if (status && !['pending', 'approved', 'rejected'].includes(status)) {
+      throw new BadRequestException('status must be pending, approved, or rejected');
+    }
     return this.service.findAll(query.page!, query.limit!, status);
   }
 
