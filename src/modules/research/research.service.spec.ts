@@ -250,6 +250,51 @@ describe('ResearchService', () => {
     });
   });
 
+  describe('findAll', () => {
+    it('returns all researches when no status filter is given', async () => {
+      const rows = [
+        makeResearch({ status: 'approved' }),
+        makeResearch({ id: 'research-2', status: 'pending' }),
+      ];
+      const db = {
+        query: {
+          researches: {
+            findMany: jest.fn().mockResolvedValue(rows),
+          },
+        },
+        select: jest.fn().mockReturnValue({
+          from: jest.fn().mockReturnThis(),
+          where: jest.fn().mockResolvedValue([{ total: 2 }]),
+        }),
+      };
+
+      const result = await createService(db).findAll(1, 20, undefined);
+
+      expect(result.data).toHaveLength(2);
+      expect(result.meta.total).toBe(2);
+    });
+
+    it('filters by status when provided', async () => {
+      const rows = [makeResearch({ status: 'pending' })];
+      const db = {
+        query: {
+          researches: {
+            findMany: jest.fn().mockResolvedValue(rows),
+          },
+        },
+        select: jest.fn().mockReturnValue({
+          from: jest.fn().mockReturnThis(),
+          where: jest.fn().mockResolvedValue([{ total: 1 }]),
+        }),
+      };
+
+      const result = await createService(db).findAll(1, 20, 'pending');
+
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].status).toBe('pending');
+    });
+  });
+
   describe('trackEvent', () => {
     it('does not track analytics for unavailable research', async () => {
       const db = {

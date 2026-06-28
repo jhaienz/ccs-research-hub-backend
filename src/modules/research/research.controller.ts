@@ -80,6 +80,17 @@ export class ResearchController {
     return this.service.findPending(query.page!, query.limit!);
   }
 
+  @ApiBearerAuth()
+  @Get('admin/all')
+  @Roles('admin')
+  @ApiOperation({ summary: 'List all researches with optional status filter (admin)' })
+  findAll(
+    @Query() query: PaginationDto,
+    @Query('status') status?: string,
+  ) {
+    return this.service.findAll(query.page!, query.limit!, status);
+  }
+
   @Public()
   @Get(':id')
   @ApiOperation({ summary: 'Get research by ID' })

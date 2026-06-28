@@ -245,6 +245,43 @@ export class ResearchService {
     };
   }
 
+  async findAll(page: number, limit: number, status?: string) {
+    const offset = (page - 1) * limit;
+    const whereClause = status
+      ? eq(researches.status, status as 'pending' | 'approved' | 'rejected')
+      : undefined;
+
+    const [data, countResult] = await Promise.all([
+      this.db.query.researches.findMany({
+        where: whereClause,
+        with: {
+          uploader: {
+            columns: { id: true, email: true, firstName: true, lastName: true },
+          },
+          researchAuthors: { with: { author: true } },
+        },
+        limit,
+        offset,
+        orderBy: (r, { desc }) => [desc(r.createdAt)],
+      }),
+      this.db
+        .select({ total: count() })
+        .from(researches)
+        .where(whereClause),
+    ]);
+
+    const [{ total }] = countResult;
+
+    return {
+      data: data.map((r) => ({
+        ...r,
+        authors: r.researchAuthors.map((ra) => ra.author),
+        researchAuthors: undefined,
+      })),
+      meta: { total, page, totalPages: Math.ceil(total / limit) },
+    };
+  }
+
   async update(researchId: string, userId: string, dto: UpdateResearchDto) {
     await this.assertOwnership(researchId, userId);
 
