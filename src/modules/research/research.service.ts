@@ -401,6 +401,14 @@ export class ResearchService {
   }
 
   async reject(researchId: string, reason: string, adminId: string) {
+    const existing = await this.db.query.researches.findFirst({
+      where: eq(researches.id, researchId),
+    });
+    if (!existing) throw new NotFoundException('Research not found');
+    if (existing.status !== 'pending') {
+      throw new BadRequestException('Only pending research can be rejected');
+    }
+
     const [research] = await this.db
       .update(researches)
       .set({

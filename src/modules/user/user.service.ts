@@ -34,9 +34,10 @@ export class UserService {
     return user;
   }
 
-  async getProfilePictureUploadUrl(userId: string) {
-    const key = `profile-pics/${userId}/${Date.now()}.jpg`;
-    const uploadUrl = await this.storage.generateUploadUrl(key, 'image/jpeg');
+  async getProfilePictureUploadUrl(userId: string, contentType = 'image/jpeg') {
+    const ext = contentType === 'image/png' ? 'png' : contentType === 'image/webp' ? 'webp' : 'jpg';
+    const key = `profile-pics/${userId}/${Date.now()}.${ext}`;
+    const uploadUrl = await this.storage.generateUploadUrl(key, contentType);
 
     await this.db
       .update(users)

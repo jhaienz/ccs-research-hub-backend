@@ -39,8 +39,11 @@ export class UserController {
 
   @Post('me/profile-picture')
   @ApiOperation({ summary: 'Get presigned URL for profile picture upload' })
-  uploadProfilePic(@CurrentUser('id') userId: string) {
-    return this.userService.getProfilePictureUploadUrl(userId);
+  uploadProfilePic(
+    @CurrentUser('id') userId: string,
+    @Body('contentType') contentType?: string,
+  ) {
+    return this.userService.getProfilePictureUploadUrl(userId, contentType);
   }
 
   @Get()
