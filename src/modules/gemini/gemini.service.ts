@@ -39,6 +39,14 @@ Respond with only the rejection feedback text.`;
     return result.response.text().trim();
   }
 
+  async chat(message: string): Promise<string> {
+    const prompt = `You are an AI assistant for the CCS Research Hub admin panel — a system for managing academic research paper submissions. You help admins review papers, draft feedback, understand analytics, and manage users. Keep answers concise and actionable.
+
+Admin: ${this.cap(message, 1000)}`;
+    const result = await this.model.generateContent(prompt);
+    return result.response.text().trim();
+  }
+
   async suggestTags(title: string, abstract: string): Promise<string> {
     const prompt = `You are an academic librarian. Based on the following research paper, suggest:
 - 2-3 academic categories (e.g. "Machine Learning", "Network Security", "Web Development")
