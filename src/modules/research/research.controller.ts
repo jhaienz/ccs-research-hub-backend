@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -21,6 +20,7 @@ import { UpdateResearchDto } from './dto/update-research.dto.js';
 import { UploadUrlDto } from './dto/upload-url.dto.js';
 import { RejectResearchDto } from './dto/reject-research.dto.js';
 import { UpdatePrivacyDto } from './dto/update-privacy.dto.js';
+import { FilterResearchDto } from './dto/filter-research.dto.js';
 import type { CurrentAuthUser } from './research.service.js';
 
 @ApiTags('Research')
@@ -85,14 +85,8 @@ export class ResearchController {
   @Get('admin/all')
   @Roles('admin')
   @ApiOperation({ summary: 'List all researches with optional status filter (admin)' })
-  findAll(
-    @Query() query: PaginationDto,
-    @Query('status') status?: string,
-  ) {
-    if (status && !['pending', 'approved', 'rejected'].includes(status)) {
-      throw new BadRequestException('status must be pending, approved, or rejected');
-    }
-    return this.service.findAll(query.page!, query.limit!, status);
+  findAll(@Query() query: FilterResearchDto) {
+    return this.service.findAll(query.page!, query.limit!, query.status);
   }
 
   @Public()

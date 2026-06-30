@@ -305,7 +305,10 @@ export class ResearchService {
   }
 
   async update(researchId: string, userId: string, dto: UpdateResearchDto) {
-    await this.assertOwnership(researchId, userId);
+    const research = await this.assertOwnership(researchId, userId);
+    if (research.status === 'approved') {
+      throw new BadRequestException('Approved research cannot be edited');
+    }
 
     const [updated] = await this.db
       .update(researches)
