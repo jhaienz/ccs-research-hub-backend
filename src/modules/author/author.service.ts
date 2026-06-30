@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { eq, count, ilike, and } from 'drizzle-orm';
+import { eq, count, ilike, and, inArray } from 'drizzle-orm';
 import { DRIZZLE } from '../../database/drizzle.provider.js';
 import type { DrizzleDB } from '../../database/drizzle.provider.js';
 import { authors } from '../../database/schema/authors.js';
@@ -63,21 +63,9 @@ export class AuthorService {
     });
     if (!author) throw new NotFoundException('Author not found');
 
-    const data = await this.db
-      .select({ research: researches })
-      .from(researchAuthors)
-      .innerJoin(researches, eq(researchAuthors.researchId, researches.id))
-      .where(
-        and(
-          eq(researchAuthors.authorId, id),
-          eq(researches.status, 'approved'),
-        ),
-      )
-      .limit(limit)
-      .offset(offset);
-
-    const [{ total }] = await this.db
-      .select({ total: count() })
+    // Get IDs of approved papers this author is linked to
+    const linked = await this.db
+      .select({ researchId: researchAuthors.researchId })
       .from(researchAuthors)
       .innerJoin(researches, eq(researchAuthors.researchId, researches.id))
       .where(
@@ -87,8 +75,30 @@ export class AuthorService {
         ),
       );
 
+    const total = linked.length;
+    if (!total) return { data: [], meta: { total, page, totalPages: 0 } };
+
+    const ids = linked.map((r) => r.researchId);
+
+    const data = await this.db.query.researches.findMany({
+      where: inArray(researches.id, ids),
+      with: {
+        researchAuthors: { with: { author: true } },
+        researchCategories: { with: { category: true } },
+      },
+      limit,
+      offset,
+      orderBy: (r, { desc }) => [desc(r.createdAt)],
+    });
+
     return {
-      data: data.map((d) => d.research),
+      data: data.map((r) => ({
+        ...r,
+        authors: r.researchAuthors.map((ra) => ra.author),
+        categories: r.researchCategories.map((rc) => rc.category),
+        researchAuthors: undefined,
+        researchCategories: undefined,
+      })),
       meta: { total, page, totalPages: Math.ceil(total / limit) },
     };
   }
