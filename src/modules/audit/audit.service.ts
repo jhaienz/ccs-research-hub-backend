@@ -1,8 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { desc, count } from 'drizzle-orm';
+import { eq, desc, count } from 'drizzle-orm';
 import { DRIZZLE } from '../../database/drizzle.provider.js';
 import type { DrizzleDB } from '../../database/drizzle.provider.js';
 import { auditLogs } from '../../database/schema/audit-logs.js';
+import { users } from '../../database/schema/users.js';
+import { researches } from '../../database/schema/researches.js';
 
 @Injectable()
 export class AuditService {
@@ -24,22 +26,41 @@ export class AuditService {
   async findAll(page: number, limit: number) {
     const offset = (page - 1) * limit;
 
-    const [data, [{ total }]] = await Promise.all([
-      this.db.query.auditLogs.findMany({
-        with: {
-          admin: { columns: { id: true, firstName: true, lastName: true, email: true } },
-          research: { columns: { id: true, title: true } },
-        },
-        limit,
-        offset,
-        orderBy: (a, { desc }) => [desc(a.createdAt)],
-      }),
+    const [rows, [{ total }]] = await Promise.all([
+      this.db
+        .select({
+          id: auditLogs.id,
+          action: auditLogs.action,
+          meta: auditLogs.meta,
+          createdAt: auditLogs.createdAt,
+          adminFirstName: users.firstName,
+          adminLastName: users.lastName,
+          researchId: researches.id,
+          researchTitle: researches.title,
+        })
+        .from(auditLogs)
+        .leftJoin(users, eq(auditLogs.adminId, users.id))
+        .leftJoin(researches, eq(auditLogs.researchId, researches.id))
+        .orderBy(desc(auditLogs.createdAt))
+        .limit(limit)
+        .offset(offset),
       this.db.select({ total: count() }).from(auditLogs),
     ]);
 
     return {
-      data,
-      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+      data: rows.map((row) => ({
+        id: row.id,
+        action: row.action,
+        meta: row.meta,
+        createdAt: row.createdAt,
+        admin: row.adminFirstName
+          ? { firstName: row.adminFirstName, lastName: row.adminLastName! }
+          : null,
+        research: row.researchId
+          ? { id: row.researchId, title: row.researchTitle! }
+          : null,
+      })),
+      meta: { total, page, totalPages: Math.ceil(total / limit) },
     };
   }
 }
