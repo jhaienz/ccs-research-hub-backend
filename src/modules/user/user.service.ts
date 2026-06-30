@@ -3,6 +3,7 @@ import { eq, count } from 'drizzle-orm';
 import { DRIZZLE } from '../../database/drizzle.provider.js';
 import type { DrizzleDB } from '../../database/drizzle.provider.js';
 import { users } from '../../database/schema/users.js';
+import { researches } from '../../database/schema/researches.js';
 import { StorageService } from '../storage/storage.service.js';
 import { UpdateProfileDto, AdminUpdateUserDto } from './dto/update-user.dto.js';
 
@@ -101,6 +102,29 @@ export class UserService {
   }
 
   async remove(userId: string) {
+    // researches.uploaderId has no ON DELETE rule (defaults to RESTRICT), so we
+    // must remove the user's papers first or the DELETE will fail with a FK error.
+    const userResearches = await this.db
+      .select({ id: researches.id, fileKey: researches.fileKey })
+      .from(researches)
+      .where(eq(researches.uploaderId, userId));
+
+    for (const r of userResearches) {
+      if (r.fileKey) await this.storage.deleteObject(r.fileKey).catch(() => {});
+    }
+    if (userResearches.length) {
+      await this.db.delete(researches).where(eq(researches.uploaderId, userId));
+    }
+
+    // Clean up profile picture if present
+    const user = await this.db.query.users.findFirst({
+      where: eq(users.id, userId),
+      columns: { profilePicKey: true },
+    });
+    if (user?.profilePicKey) {
+      await this.storage.deleteObject(user.profilePicKey).catch(() => {});
+    }
+
     const [deleted] = await this.db
       .delete(users)
       .where(eq(users.id, userId))
